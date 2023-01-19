@@ -7,21 +7,23 @@ WORKDIR /app
 # get deps first so we have a cache
 ADD mix.exs mix.lock /app/
 RUN \
-	cd /app && \
-	mix local.hex --force && \
-	mix local.rebar --force && \
-	mix deps.get
+    cd /app && \
+    mix local.hex --force && \
+    mix local.rebar --force && \
+    mix deps.get
 
 # then make a release build
 ADD . /app/
 RUN \
-	mix compile && \
-	mix release
+    mix compile && \
+    mix release
 
 FROM elixir:1.12.3-alpine
 
 RUN apk add redis
 
+ENV REDIS_HOST=localhost
+
 COPY --from=build /app/_build/prod/rel/lanyard /opt/lanyard
 
-CMD [ "/opt/lanyard/bin/lanyard", "start" ]
+CMD nohup sh -c "redis-server &" && /opt/lanyard/bin/lanyard start
